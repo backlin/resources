@@ -11,16 +11,12 @@ message ItemSet {
 }
 
 message Item {
-	int32 ID = 1;
+	int32 id = 1;
 	string name = 2;
 	repeated Attribute attributes = 3;
 }
 
 message Attribute {
 	string name = 1;
-	oneof value {
-		string string_value = 2;
-		int32 int_value = 3;
-		float float_value = 4;
-	}
+	string value = 2;
 }

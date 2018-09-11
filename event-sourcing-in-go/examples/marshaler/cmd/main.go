@@ -1,9 +1,10 @@
 package main
 
-import ("github.com/backlin/sarama"
-"github.com/go-kit/kit/log"
+import (
+	"github.com/Shopify/sarama"
+	"github.com/backlin/resources/event-sourcing-in-go/examples/marshaler"
+	"github.com/go-kit/kit/log"
 	"os"
-".."
 )
 var config = struct {
 	BrokerAddresses []string
@@ -51,5 +52,5 @@ func main() {
 	stop := make(chan struct{})
 	go marshaler.Run(config.InputTopic, config.OutputTopic, sarama.OffsetOldest, stop)
 
-	// Optionally, implement `stop <- struct{}` if receiving SIGINT
+	// Optionally, implement `stop <- struct{}` when receiving external request
 }

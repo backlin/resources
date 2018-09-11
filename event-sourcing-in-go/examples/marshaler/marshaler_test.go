@@ -7,6 +7,7 @@ import (
 	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
 	"github.com/go-kit/kit/log"
+	"github.com/gogo/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"io"
 	"reflect"
@@ -19,41 +20,61 @@ const (
 )
 
 func TestMarshaler(t *testing.T) {
-	wantItems := []*Item{
-		{
-			ID: 1032,
-			Name: "t-shirt",
-			Attributes: []*Attribute{
-				{Name: "size", Value: &Attribute_StringValue{StringValue: "small"}},
-				{Name: "color", Value: &Attribute_StringValue{StringValue: "blue"}},
-			},
+	wantItem := &Item{
+		Id: 1032,
+		Name: "t-shirt",
+		Attributes: []*Attribute{
+			{Name: "size", Value: "small"},
+			{Name: "color", Value: "blue"},
 		},
+
 	}
 
-	b, err := json.Marshal(wantItems)
+	// Make raw file body
+	testItems := &ItemSet{
+		Items: []*Item{wantItem},
+	}
+	body, err := json.Marshal(testItems)
 	if err != nil {
-		t.Fatalf("test is broken: %s", err)
+		t.Fatalf("failed to marshal raw file (test is broken): %s", err)
 	}
-	filestorage := mockFileStorage{body: b}
+	filestorage := mockFileStorage{body: body}
 
+	// Make raw item set message, which points to the raw file
+	rawItems := &RawItemSet{
+		Url: "s3://mock-bucket/path/body.json",
+	}
+	b, err := rawItems.Marshal()
+	if err != nil {
+		t.Fatalf("failed to marshal raw item (test is broken): %s", err)
+	}
 	testMessage := &sarama.ConsumerMessage{
 		Value: sarama.ByteEncoder(b),
 	}
 
+	// Set up mock Kafka consumer
 	config := sarama.NewConfig()
 	consumer := mocks.NewConsumer(t, config)
 
 	partitionConsumer := consumer.ExpectConsumePartition(testInputTopic, 0, 0)
 	partitionConsumer.YieldMessage(testMessage)
 
+	// Set up mock Kafka producer including value checking funciotn
 	stop := make(chan struct{})
 	valueChecker := func(val []byte) error {
 		defer func(){
-			stop <- struct{}{}
+			go func(){
+				stop <- struct{}{} // This has to be put in a go-routine to avoid deadlock
+			}()
 		}()
 
-		if !reflect.DeepEqual(val, wantItems) {
-			return fmt.Errorf("incorrect output: %s", cmp.Diff(val, wantItems))
+		gotItem := &Item{}
+		if err := proto.Unmarshal(val, gotItem); err != nil {
+			return fmt.Errorf("could not unmarshal value written to Kafka: %s", err)
+		}
+
+		if !reflect.DeepEqual(wantItem, gotItem) {
+			return fmt.Errorf("incorrect output: %s", cmp.Diff(wantItem, gotItem))
 		}
 		return nil
 	}
@@ -61,6 +82,7 @@ func TestMarshaler(t *testing.T) {
 	producer := mocks.NewSyncProducer(t, config)
 	producer.ExpectSendMessageWithCheckerFunctionAndSucceed(valueChecker)
 
+	// Connect everything and run
 	marshaler := Marshaler{
 		Consumer: consumer,
 		Producer: producer,
@@ -68,7 +90,10 @@ func TestMarshaler(t *testing.T) {
 		Logger: testLogger{t: t},
 	}
 
-	marshaler.Run(testInputTopic, testOutputTopic, 0, stop)
+	if err := marshaler.Run(testInputTopic, testOutputTopic, 0, stop); err != nil {
+		t.Fatal(err)
+	}
+
 }
 
 type mockFileStorage struct {

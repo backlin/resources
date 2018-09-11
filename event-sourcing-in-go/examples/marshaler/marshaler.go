@@ -2,12 +2,11 @@ package marshaler
 
 import (
 	"fmt"
-	"io"
-	"io/ioutil"
-
 	"github.com/Shopify/sarama"
 	"github.com/go-kit/kit/log"
 	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/jsonpb"
+	"io"
 )
 
 type Marshaler struct {
@@ -36,7 +35,7 @@ func (m Marshaler) Run(inputTopic, outputTopic string, offset int64, stop <-chan
 				m.Logger.Log("partition consumer closed, shutting down")
 				return nil
 			}
-			m.Logger.Log(fmt.Sprintf("processing message (offset %d)", inMsg.Offset))
+			m.Logger.Log("msg", fmt.Sprintf("processing message (offset %d)", inMsg.Offset))
 
 			outMsgs, err := m.processMessage(inMsg, outputTopic)
 			if err != nil {
@@ -48,14 +47,14 @@ func (m Marshaler) Run(inputTopic, outputTopic string, offset int64, stop <-chan
 			}
 
 		case <-stop:
-			m.Logger.Log("received shutdown signal")
+			m.Logger.Log("msg", "received shutdown signal")
 			return nil
 		}
 	}
 }
 
 func (m Marshaler) processMessage(inMsg *sarama.ConsumerMessage, outputTopic string ) ([]*sarama.ProducerMessage, error) {
-	var rawItems *RawItemSet
+	rawItems := &RawItemSet{}
 	if err := proto.Unmarshal(inMsg.Value, rawItems); err != nil {
 		return nil, fmt.Errorf("could not unmarshal message: %s", err)
 	}
@@ -65,13 +64,8 @@ func (m Marshaler) processMessage(inMsg *sarama.ConsumerMessage, outputTopic str
 		return nil, fmt.Errorf("could not retrieve raw file %q: %s", rawItems.Url, err)
 	}
 
-	body, err := ioutil.ReadAll(rawFile)
-	if err != nil {
-		return nil, fmt.Errorf("could not read raw file: %s", err)
-	}
-
-	var items *ItemSet
-	if err := proto.Unmarshal(body, items); err != nil {
+	items := &ItemSet{}
+	if err := jsonpb.Unmarshal(rawFile, items); err != nil {
 		return nil, fmt.Errorf("could not unmarshal raw file: %s", err)
 	}
 

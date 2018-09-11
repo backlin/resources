@@ -66,7 +66,7 @@ func (m *ItemSet) GetItems() []*Item {
 }
 
 type Item struct {
-	ID         int32        `protobuf:"varint,1,opt,name=ID,proto3" json:"ID,omitempty"`
+	Id         int32        `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	Name       string       `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
 	Attributes []*Attribute `protobuf:"bytes,3,rep,name=attributes" json:"attributes,omitempty"`
 }
@@ -76,9 +76,9 @@ func (m *Item) String() string            { return proto.CompactTextString(m) }
 func (*Item) ProtoMessage()               {}
 func (*Item) Descriptor() ([]byte, []int) { return fileDescriptorItem, []int{2} }
 
-func (m *Item) GetID() int32 {
+func (m *Item) GetId() int32 {
 	if m != nil {
-		return m.ID
+		return m.Id
 	}
 	return 0
 }
@@ -98,45 +98,14 @@ func (m *Item) GetAttributes() []*Attribute {
 }
 
 type Attribute struct {
-	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
-	// Types that are valid to be assigned to Value:
-	//	*Attribute_StringValue
-	//	*Attribute_IntValue
-	//	*Attribute_FloatValue
-	Value isAttribute_Value `protobuf_oneof:"value"`
+	Name  string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Value string `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 }
 
 func (m *Attribute) Reset()                    { *m = Attribute{} }
 func (m *Attribute) String() string            { return proto.CompactTextString(m) }
 func (*Attribute) ProtoMessage()               {}
 func (*Attribute) Descriptor() ([]byte, []int) { return fileDescriptorItem, []int{3} }
-
-type isAttribute_Value interface {
-	isAttribute_Value()
-	MarshalTo([]byte) (int, error)
-	Size() int
-}
-
-type Attribute_StringValue struct {
-	StringValue string `protobuf:"bytes,2,opt,name=string_value,json=stringValue,proto3,oneof"`
-}
-type Attribute_IntValue struct {
-	IntValue int32 `protobuf:"varint,3,opt,name=int_value,json=intValue,proto3,oneof"`
-}
-type Attribute_FloatValue struct {
-	FloatValue float32 `protobuf:"fixed32,4,opt,name=float_value,json=floatValue,proto3,oneof"`
-}
-
-func (*Attribute_StringValue) isAttribute_Value() {}
-func (*Attribute_IntValue) isAttribute_Value()    {}
-func (*Attribute_FloatValue) isAttribute_Value()  {}
-
-func (m *Attribute) GetValue() isAttribute_Value {
-	if m != nil {
-		return m.Value
-	}
-	return nil
-}
 
 func (m *Attribute) GetName() string {
 	if m != nil {
@@ -145,104 +114,11 @@ func (m *Attribute) GetName() string {
 	return ""
 }
 
-func (m *Attribute) GetStringValue() string {
-	if x, ok := m.GetValue().(*Attribute_StringValue); ok {
-		return x.StringValue
+func (m *Attribute) GetValue() string {
+	if m != nil {
+		return m.Value
 	}
 	return ""
-}
-
-func (m *Attribute) GetIntValue() int32 {
-	if x, ok := m.GetValue().(*Attribute_IntValue); ok {
-		return x.IntValue
-	}
-	return 0
-}
-
-func (m *Attribute) GetFloatValue() float32 {
-	if x, ok := m.GetValue().(*Attribute_FloatValue); ok {
-		return x.FloatValue
-	}
-	return 0
-}
-
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Attribute) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Attribute_OneofMarshaler, _Attribute_OneofUnmarshaler, _Attribute_OneofSizer, []interface{}{
-		(*Attribute_StringValue)(nil),
-		(*Attribute_IntValue)(nil),
-		(*Attribute_FloatValue)(nil),
-	}
-}
-
-func _Attribute_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Attribute)
-	// value
-	switch x := m.Value.(type) {
-	case *Attribute_StringValue:
-		_ = b.EncodeVarint(2<<3 | proto.WireBytes)
-		_ = b.EncodeStringBytes(x.StringValue)
-	case *Attribute_IntValue:
-		_ = b.EncodeVarint(3<<3 | proto.WireVarint)
-		_ = b.EncodeVarint(uint64(x.IntValue))
-	case *Attribute_FloatValue:
-		_ = b.EncodeVarint(4<<3 | proto.WireFixed32)
-		_ = b.EncodeFixed32(uint64(math.Float32bits(x.FloatValue)))
-	case nil:
-	default:
-		return fmt.Errorf("Attribute.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Attribute_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Attribute)
-	switch tag {
-	case 2: // value.string_value
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeStringBytes()
-		m.Value = &Attribute_StringValue{x}
-		return true, err
-	case 3: // value.int_value
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Value = &Attribute_IntValue{int32(x)}
-		return true, err
-	case 4: // value.float_value
-		if wire != proto.WireFixed32 {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeFixed32()
-		m.Value = &Attribute_FloatValue{math.Float32frombits(uint32(x))}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Attribute_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Attribute)
-	// value
-	switch x := m.Value.(type) {
-	case *Attribute_StringValue:
-		n += proto.SizeVarint(2<<3 | proto.WireBytes)
-		n += proto.SizeVarint(uint64(len(x.StringValue)))
-		n += len(x.StringValue)
-	case *Attribute_IntValue:
-		n += proto.SizeVarint(3<<3 | proto.WireVarint)
-		n += proto.SizeVarint(uint64(x.IntValue))
-	case *Attribute_FloatValue:
-		n += proto.SizeVarint(4<<3 | proto.WireFixed32)
-		n += 4
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 func init() {
@@ -320,10 +196,10 @@ func (m *Item) MarshalTo(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if m.ID != 0 {
+	if m.Id != 0 {
 		dAtA[i] = 0x8
 		i++
-		i = encodeVarintItem(dAtA, i, uint64(m.ID))
+		i = encodeVarintItem(dAtA, i, uint64(m.Id))
 	}
 	if len(m.Name) > 0 {
 		dAtA[i] = 0x12
@@ -367,38 +243,15 @@ func (m *Attribute) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintItem(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
-	if m.Value != nil {
-		nn1, err := m.Value.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
-		}
-		i += nn1
+	if len(m.Value) > 0 {
+		dAtA[i] = 0x12
+		i++
+		i = encodeVarintItem(dAtA, i, uint64(len(m.Value)))
+		i += copy(dAtA[i:], m.Value)
 	}
 	return i, nil
 }
 
-func (m *Attribute_StringValue) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x12
-	i++
-	i = encodeVarintItem(dAtA, i, uint64(len(m.StringValue)))
-	i += copy(dAtA[i:], m.StringValue)
-	return i, nil
-}
-func (m *Attribute_IntValue) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x18
-	i++
-	i = encodeVarintItem(dAtA, i, uint64(m.IntValue))
-	return i, nil
-}
-func (m *Attribute_FloatValue) MarshalTo(dAtA []byte) (int, error) {
-	i := 0
-	dAtA[i] = 0x25
-	i++
-	i = encodeFixed32Item(dAtA, i, uint32(math.Float32bits(float32(m.FloatValue))))
-	return i, nil
-}
 func encodeFixed64Item(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	dAtA[offset+1] = uint8(v >> 8)
@@ -451,8 +304,8 @@ func (m *ItemSet) Size() (n int) {
 func (m *Item) Size() (n int) {
 	var l int
 	_ = l
-	if m.ID != 0 {
-		n += 1 + sovItem(uint64(m.ID))
+	if m.Id != 0 {
+		n += 1 + sovItem(uint64(m.Id))
 	}
 	l = len(m.Name)
 	if l > 0 {
@@ -474,29 +327,10 @@ func (m *Attribute) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovItem(uint64(l))
 	}
-	if m.Value != nil {
-		n += m.Value.Size()
+	l = len(m.Value)
+	if l > 0 {
+		n += 1 + l + sovItem(uint64(l))
 	}
-	return n
-}
-
-func (m *Attribute_StringValue) Size() (n int) {
-	var l int
-	_ = l
-	l = len(m.StringValue)
-	n += 1 + l + sovItem(uint64(l))
-	return n
-}
-func (m *Attribute_IntValue) Size() (n int) {
-	var l int
-	_ = l
-	n += 1 + sovItem(uint64(m.IntValue))
-	return n
-}
-func (m *Attribute_FloatValue) Size() (n int) {
-	var l int
-	_ = l
-	n += 5
 	return n
 }
 
@@ -704,9 +538,9 @@ func (m *Item) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ID", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Id", wireType)
 			}
-			m.ID = 0
+			m.Id = 0
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowItem
@@ -716,7 +550,7 @@ func (m *Item) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				m.ID |= (int32(b) & 0x7F) << shift
+				m.Id |= (int32(b) & 0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -862,7 +696,7 @@ func (m *Attribute) Unmarshal(dAtA []byte) error {
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StringValue", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field Value", wireType)
 			}
 			var stringLen uint64
 			for shift := uint(0); ; shift += 7 {
@@ -887,42 +721,8 @@ func (m *Attribute) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Value = &Attribute_StringValue{string(dAtA[iNdEx:postIndex])}
+			m.Value = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field IntValue", wireType)
-			}
-			var v int32
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowItem
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				v |= (int32(b) & 0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			m.Value = &Attribute_IntValue{v}
-		case 4:
-			if wireType != 5 {
-				return fmt.Errorf("proto: wrong wireType = %d for field FloatValue", wireType)
-			}
-			var v uint32
-			if (iNdEx + 4) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += 4
-			v = uint32(dAtA[iNdEx-4])
-			v |= uint32(dAtA[iNdEx-3]) << 8
-			v |= uint32(dAtA[iNdEx-2]) << 16
-			v |= uint32(dAtA[iNdEx-1]) << 24
-			m.Value = &Attribute_FloatValue{float32(math.Float32frombits(v))}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipItem(dAtA[iNdEx:])
@@ -1052,22 +852,19 @@ var (
 func init() { proto.RegisterFile("item.proto", fileDescriptorItem) }
 
 var fileDescriptorItem = []byte{
-	// 267 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x4c, 0x90, 0x4d, 0x4a, 0xc4, 0x30,
-	0x14, 0x80, 0x9b, 0xfe, 0x38, 0xf6, 0x55, 0x74, 0x08, 0x2e, 0xba, 0x31, 0xd4, 0x8a, 0xd0, 0x55,
-	0x11, 0xf5, 0x02, 0x0e, 0xb3, 0x68, 0xb7, 0x11, 0xdc, 0x6a, 0x06, 0xa2, 0x06, 0xfa, 0x23, 0xe9,
-	0xab, 0x1e, 0x43, 0x8f, 0xe5, 0xd2, 0x23, 0x48, 0xbd, 0x88, 0x24, 0x9d, 0x96, 0xee, 0x5e, 0xde,
-	0xf7, 0xf1, 0x25, 0x04, 0x40, 0xa1, 0xac, 0xf3, 0x37, 0xdd, 0x62, 0x4b, 0xc3, 0x5a, 0xe8, 0xee,
-	0x55, 0x54, 0x52, 0xa7, 0x0c, 0x80, 0x8b, 0x8f, 0x12, 0x65, 0x7d, 0x2f, 0x91, 0xae, 0xc1, 0xeb,
-	0x75, 0x15, 0x93, 0x84, 0x64, 0x21, 0x37, 0x63, 0x7a, 0x05, 0xab, 0x09, 0x5e, 0x42, 0x60, 0x1a,
-	0x5d, 0x4c, 0x12, 0x2f, 0x8b, 0xae, 0x4f, 0xf2, 0xb9, 0x92, 0x1b, 0x85, 0x8f, 0x34, 0x7d, 0x02,
-	0xdf, 0x1c, 0xe9, 0x31, 0xb8, 0xe5, 0xd6, 0xa6, 0x02, 0xee, 0x96, 0x5b, 0x4a, 0xc1, 0x6f, 0x44,
-	0x2d, 0x63, 0xd7, 0xc6, 0xed, 0x4c, 0x6f, 0x01, 0x04, 0xa2, 0x56, 0xbb, 0x1e, 0x65, 0x17, 0x7b,
-	0xb6, 0x7b, 0xba, 0xe8, 0xde, 0x4d, 0x90, 0x2f, 0xbc, 0xf4, 0x93, 0x40, 0x38, 0x93, 0xb9, 0x4b,
-	0x16, 0xdd, 0x0b, 0x38, 0xea, 0x50, 0xab, 0xe6, 0xe5, 0xf1, 0x5d, 0x54, 0xfd, 0xfe, 0xce, 0xc2,
-	0xe1, 0xd1, 0xb8, 0x7d, 0x30, 0x4b, 0x7a, 0x06, 0xa1, 0x6a, 0x70, 0x6f, 0x78, 0xe6, 0x9d, 0x85,
-	0xc3, 0x0f, 0x55, 0x83, 0x23, 0x3e, 0x87, 0xe8, 0xb9, 0x6a, 0xc5, 0x24, 0xf8, 0x09, 0xc9, 0xdc,
-	0xc2, 0xe1, 0x60, 0x97, 0x56, 0xd9, 0xac, 0x20, 0xb0, 0x70, 0xb3, 0xfe, 0x1e, 0x18, 0xf9, 0x19,
-	0x18, 0xf9, 0x1d, 0x18, 0xf9, 0xfa, 0x63, 0xce, 0xee, 0xc0, 0xfe, 0xf4, 0xcd, 0x7f, 0x00, 0x00,
-	0x00, 0xff, 0xff, 0x4b, 0x2a, 0x58, 0xb3, 0x77, 0x01, 0x00, 0x00,
+	// 212 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0xca, 0x2c, 0x49, 0xcd,
+	0xd5, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0xe2, 0xcc, 0x4d, 0x2c, 0x2a, 0xce, 0x48, 0xcc, 0x49,
+	0x2d, 0x52, 0x92, 0xe3, 0xe2, 0x0a, 0x4a, 0x2c, 0xf7, 0x2c, 0x49, 0xcd, 0x0d, 0x4e, 0x2d, 0x11,
+	0x12, 0xe0, 0x62, 0x2e, 0x2d, 0xca, 0x91, 0x60, 0x54, 0x60, 0xd4, 0xe0, 0x0c, 0x02, 0x31, 0x95,
+	0x0c, 0xb8, 0xd8, 0x61, 0x92, 0xaa, 0x5c, 0xac, 0x20, 0x33, 0x8a, 0x25, 0x18, 0x15, 0x98, 0x35,
+	0xb8, 0x8d, 0xf8, 0xf5, 0xe0, 0xa6, 0xe8, 0x81, 0x94, 0x04, 0x41, 0x64, 0x95, 0x12, 0xb8, 0x58,
+	0x40, 0x5c, 0x21, 0x3e, 0x2e, 0xa6, 0xcc, 0x14, 0xb0, 0x51, 0xac, 0x41, 0x4c, 0x99, 0x29, 0x42,
+	0x42, 0x5c, 0x2c, 0x79, 0x89, 0xb9, 0xa9, 0x12, 0x4c, 0x60, 0xc3, 0xc1, 0x6c, 0x21, 0x13, 0x2e,
+	0xae, 0xc4, 0x92, 0x92, 0xa2, 0xcc, 0xa4, 0xd2, 0x92, 0xd4, 0x62, 0x09, 0x66, 0xb0, 0xb9, 0x22,
+	0x48, 0xe6, 0x3a, 0xc2, 0x24, 0x83, 0x90, 0xd4, 0x29, 0x99, 0x72, 0x71, 0xc2, 0x25, 0xe0, 0xc6,
+	0x32, 0x22, 0x19, 0x2b, 0xc2, 0xc5, 0x5a, 0x96, 0x98, 0x53, 0x0a, 0xb3, 0x0b, 0xc2, 0x71, 0x12,
+	0x38, 0xf1, 0x48, 0x8e, 0xf1, 0xc2, 0x23, 0x39, 0xc6, 0x07, 0x8f, 0xe4, 0x18, 0x27, 0x3c, 0x96,
+	0x63, 0x48, 0x62, 0x03, 0x07, 0x87, 0x31, 0x20, 0x00, 0x00, 0xff, 0xff, 0xd1, 0x9f, 0x65, 0x96,
+	0x1c, 0x01, 0x00, 0x00,
 }
