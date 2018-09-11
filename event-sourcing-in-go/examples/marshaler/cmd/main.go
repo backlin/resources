@@ -43,10 +43,10 @@ func main() {
 	// TODO: Set up file retreival here
 
 	marshaler := marshaler.Marshaler{
-		Consumer: consumer,
-		Producer: producer,
-		Filestorage: filestorage,
-		Logger: logger,
+		Consumer:    consumer,
+		Producer:    producer,
+		FileStorage: filestorage,
+		Logger:      logger,
 	}
 
 	stop := make(chan struct{})

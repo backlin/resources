@@ -4,33 +4,33 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
+	"reflect"
+	"testing"
+
 	"github.com/Shopify/sarama"
 	"github.com/Shopify/sarama/mocks"
 	"github.com/go-kit/kit/log"
 	"github.com/gogo/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
-	"io"
-	"reflect"
-	"testing"
 )
 
 const (
-	testInputTopic = "test_in"
+	testInputTopic  = "test_in"
 	testOutputTopic = "test_out"
 )
 
 func TestMarshaler(t *testing.T) {
 	wantItem := &Item{
-		Id: 1032,
+		Id:   1032,
 		Name: "t-shirt",
 		Attributes: []*Attribute{
 			{Name: "size", Value: "small"},
 			{Name: "color", Value: "blue"},
 		},
-
 	}
 
-	// Make raw file body
+	// Make raw file
 	testItems := &ItemSet{
 		Items: []*Item{wantItem},
 	}
@@ -40,7 +40,7 @@ func TestMarshaler(t *testing.T) {
 	}
 	filestorage := mockFileStorage{body: body}
 
-	// Make raw item set message, which points to the raw file
+	// Make message that points to the raw file
 	rawItems := &RawItemSet{
 		Url: "s3://mock-bucket/path/body.json",
 	}
@@ -52,21 +52,15 @@ func TestMarshaler(t *testing.T) {
 		Value: sarama.ByteEncoder(b),
 	}
 
-	// Set up mock Kafka consumer
+	// Mock Kafka
 	config := sarama.NewConfig()
-	consumer := mocks.NewConsumer(t, config)
 
+	consumer := mocks.NewConsumer(t, config)
 	partitionConsumer := consumer.ExpectConsumePartition(testInputTopic, 0, 0)
 	partitionConsumer.YieldMessage(testMessage)
 
-	// Set up mock Kafka producer including value checking funciotn
-	stop := make(chan struct{})
 	valueChecker := func(val []byte) error {
-		defer func(){
-			go func(){
-				stop <- struct{}{} // This has to be put in a go-routine to avoid deadlock
-			}()
-		}()
+		defer consumer.Close()
 
 		gotItem := &Item{}
 		if err := proto.Unmarshal(val, gotItem); err != nil {
@@ -84,13 +78,13 @@ func TestMarshaler(t *testing.T) {
 
 	// Connect everything and run
 	marshaler := Marshaler{
-		Consumer: consumer,
-		Producer: producer,
-		Filestorage: filestorage,
-		Logger: testLogger{t: t},
+		Consumer:    consumer,
+		Producer:    producer,
+		FileStorage: filestorage,
+		Logger:      testLogger{t: t},
 	}
 
-	if err := marshaler.Run(testInputTopic, testOutputTopic, 0, stop); err != nil {
+	if err := marshaler.Run(testInputTopic, testOutputTopic, 0); err != nil {
 		t.Fatal(err)
 	}
 
