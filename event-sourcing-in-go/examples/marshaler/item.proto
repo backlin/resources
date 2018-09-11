@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package marshaler;
+
+message RawItemSet {
+	string url = 1;
+}
+
+message ItemSet {
+	repeated Item items = 1;
+}
+
+message Item {
+	int32 ID = 1;
+	string name = 2;
+	repeated Attribute attributes = 3;
+}
+
+message Attribute {
+	string name = 1;
+	oneof value {
+		string string_value = 2;
+		int32 int_value = 3;
+		float float_value = 4;
+	}
+}
