@@ -22,23 +22,29 @@ type FileRetriever interface {
 	Get(url string) (io.Reader, error)
 }
 
-func (m Marshaler) Run(inputTopic, outputTopic string, offset int64) error {
+func (m Marshaler) Run(inputTopic, outputTopic string) error {
 	const partition = 0
 
-	pc, err := m.Consumer.ConsumePartition(inputTopic, partition, offset)
-	if err != nil {
-		return fmt.Errorf("could not consume topic %q, partition %d, offset %d", inputTopic, partition, offset)
-	}
-	defer pc.Close()
-
-	var pom sarama.PartitionOffsetManager
+	offset := sarama.OffsetOldest
+	var (
+		pom sarama.PartitionOffsetManager
+		err error
+	)
 	if m.OffsetManager != nil {
 		pom, err = m.OffsetManager.ManagePartition(inputTopic, partition)
 		if err != nil {
 			return fmt.Errorf("could not manage offset of %q, partition %d", inputTopic, partition)
 		}
 		defer pom.Close()
+
+		offset, _ = pom.NextOffset()
 	}
+
+	pc, err := m.Consumer.ConsumePartition(inputTopic, partition, offset)
+	if err != nil {
+		return fmt.Errorf("could not consume topic %q, partition %d, offset %d", inputTopic, partition, offset)
+	}
+	defer pc.Close()
 
 	for {
 		inMsg, open := <-pc.Messages()

@@ -84,7 +84,7 @@ func TestMarshaler(t *testing.T) {
 		Logger:      testLogger{t: t},
 	}
 
-	if err := marshaler.Run(testInputTopic, testOutputTopic, 0); err != nil {
+	if err := marshaler.Run(testInputTopic, testOutputTopic); err != nil {
 		t.Fatal(err)
 	}
 }
