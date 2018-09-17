@@ -54,8 +54,8 @@ func TestMarshaler(t *testing.T) {
 
 	// Mock Kafka
 	config := sarama.NewConfig()
-
 	consumer := mocks.NewConsumer(t, config)
+
 	partitionConsumer := consumer.ExpectConsumePartition(testInputTopic, 0, 0)
 	partitionConsumer.YieldMessage(testMessage)
 
@@ -70,13 +70,13 @@ func TestMarshaler(t *testing.T) {
 		if !reflect.DeepEqual(wantItem, gotItem) {
 			return fmt.Errorf("incorrect output: %s", cmp.Diff(wantItem, gotItem))
 		}
+
 		return nil
 	}
 
 	producer := mocks.NewSyncProducer(t, config)
 	producer.ExpectSendMessageWithCheckerFunctionAndSucceed(valueChecker)
 
-	// Connect everything and run
 	marshaler := Marshaler{
 		Consumer:    consumer,
 		Producer:    producer,
@@ -87,7 +87,6 @@ func TestMarshaler(t *testing.T) {
 	if err := marshaler.Run(testInputTopic, testOutputTopic, 0); err != nil {
 		t.Fatal(err)
 	}
-
 }
 
 type mockFileStorage struct {

@@ -6,15 +6,16 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/go-kit/kit/log"
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-	"github.com/golang/protobuf/jsonpb"
 )
 
 type Marshaler struct {
-	Consumer    sarama.Consumer
-	Producer    sarama.SyncProducer
-	FileStorage FileRetriever
-	Logger      log.Logger
+	Consumer      sarama.Consumer
+	Producer      sarama.SyncProducer
+	OffsetManager sarama.OffsetManager
+	FileStorage   FileRetriever
+	Logger        log.Logger
 }
 
 type FileRetriever interface {
@@ -27,6 +28,16 @@ func (m Marshaler) Run(inputTopic, outputTopic string, offset int64) error {
 	pc, err := m.Consumer.ConsumePartition(inputTopic, partition, offset)
 	if err != nil {
 		return fmt.Errorf("could not consume topic %q, partition %d, offset %d", inputTopic, partition, offset)
+	}
+	defer pc.Close()
+
+	var pom sarama.PartitionOffsetManager
+	if m.OffsetManager != nil {
+		pom, err = m.OffsetManager.ManagePartition(inputTopic, partition)
+		if err != nil {
+			return fmt.Errorf("could not manage offset of %q, partition %d", inputTopic, partition)
+		}
+		defer pom.Close()
 	}
 
 	for {
@@ -46,6 +57,10 @@ func (m Marshaler) Run(inputTopic, outputTopic string, offset int64) error {
 
 		if err := m.Producer.SendMessages(outMsgs); err != nil {
 			return fmt.Errorf("could not send message: %s", err)
+		}
+
+		if pom != nil {
+			pom.MarkOffset(inMsg.Offset+1, "")
 		}
 	}
 }
