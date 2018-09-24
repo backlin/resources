@@ -8,7 +8,6 @@ import (
 	"github.com/backlin/resources/event-sourcing-in-go/examples/orchestrator"
 	"github.com/bsm/sarama-cluster"
 	"github.com/go-kit/kit/log"
-	"github.com/gogo/protobuf/proto"
 )
 
 type Worker struct {
@@ -28,11 +27,17 @@ func (w Worker) Run() error {
 			return nil
 		}
 
-		w.Logger.Log("offset", inMsg.Offset, "msg", "processing")
-
-		outMsg, err := processMessage(inMsg, w.TrackerTopic)
+		id, work, err := orchestrator.UnmarshalWork(inMsg)
 		if err != nil {
-			w.Logger.Log("offset", inMsg.Offset, "err", err, "msg", "failed processing work message")
+			w.Logger.Log("offset", inMsg.Offset, "msg", "invalid message", "err", err)
+			continue
+		}
+
+		w.Logger.Log("offset", inMsg.Offset, "batch_id", id, "job_id", work.JobId, "msg", "processing")
+
+		outMsg, err := processWork(work, w.TrackerTopic)
+		if err != nil {
+			w.Logger.Log("offset", inMsg.Offset, "batch_id", id, "job_id", work.JobId, "err", err, "msg", "failed processing work message")
 			continue
 		}
 
@@ -49,18 +54,15 @@ func (w Worker) Run() error {
 
 		w.Consumer.MarkOffset(inMsg, "")
 
+		w.Logger.Log("offset", inMsg.Offset, "batch_id", id, "job_id", work.JobId, "msg", "SUCCESS")
 	}
 }
 
-func processMessage(inMsg *sarama.ConsumerMessage, trackerTopic string) (*sarama.ProducerMessage, error) {
-	work := &orchestrator.Work{}
-	if err := proto.Unmarshal(inMsg.Value, work); err != nil {
-		return nil, fmt.Errorf("could not unmarshal message: %s", err)
-		// You might want to consider failing softly here instead
-	}
+func processWork(work orchestrator.Work, trackerTopic string) (*sarama.ProducerMessage, error) {
+	// Do the actual work
+	time.Sleep(time.Duration(work.Duration) * time.Millisecond)
 
-	time.Sleep(time.Duration(work.Duration)) // The requested work to be done
-
+	// Package the output
 	value := orchestrator.Event{
 		BatchId:     work.BatchId,
 		JobId:       work.JobId,

@@ -6,19 +6,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/backlin/resources/event-sourcing-in-go/examples/orchestrator"
-	"github.com/oklog/ulid"
 )
-
-type batchID ulid.ULID
-
-func (id batchID) mustMarshalBinary() sarama.ByteEncoder {
-	b, err := ulid.ULID(id).MarshalBinary()
-	if err != nil {
-		panic(fmt.Errorf("failed to marshal ULID: %s", err))
-	}
-
-	return sarama.ByteEncoder(b)
-}
 
 type batch struct {
 	jobCount     int32
@@ -26,11 +14,15 @@ type batch struct {
 	failureCount int32
 }
 
-func (t *Tracker) updateState(id batchID, event orchestrator.Event) ([]*sarama.ProducerMessage, error) {
+func (t *Tracker) updateState(id orchestrator.BatchID, event orchestrator.Event) ([]*sarama.ProducerMessage, error) {
 	if event.GetStatusLevel() == orchestrator.Event_JOB {
 		outMsg, err := t.updateJob(id, event)
 		if err != nil {
 			return nil, fmt.Errorf("failed updating job: %s", err)
+		}
+
+		if outMsg == nil {
+			return nil, nil
 		}
 
 		return []*sarama.ProducerMessage{outMsg}, nil
@@ -45,8 +37,8 @@ func (t *Tracker) updateState(id batchID, event orchestrator.Event) ([]*sarama.P
 	return outMsgs, nil
 }
 
-func (t *Tracker) updateBatch(id batchID, event orchestrator.Event) ([]*sarama.ProducerMessage, error) {
-	t.Logger.Log("offset", t.offset, "batch", id, "status", event.GetStatus())
+func (t *Tracker) updateBatch(id orchestrator.BatchID, event orchestrator.Event) ([]*sarama.ProducerMessage, error) {
+	t.Logger.Log("offset", t.offset, "batch_id", id, "status", event.GetStatus())
 
 	switch event.GetStatus() {
 	case orchestrator.Event_PENDING:
@@ -62,7 +54,7 @@ func (t *Tracker) updateBatch(id batchID, event orchestrator.Event) ([]*sarama.P
 	return nil, nil
 }
 
-func (t *Tracker) runBatch(id batchID, jobCount int32) ([]*sarama.ProducerMessage, error) {
+func (t *Tracker) runBatch(id orchestrator.BatchID, jobCount int32) ([]*sarama.ProducerMessage, error) {
 	if jobCount == 0 {
 		t.Logger.Log("offset", t.offset, "batch_id", id, "err", "batch has no jobs, no point running it")
 		return nil, nil
@@ -77,7 +69,7 @@ func (t *Tracker) runBatch(id batchID, jobCount int32) ([]*sarama.ProducerMessag
 	// Create work messages
 	for i := int32(0); i < jobCount; i++ {
 		work := &orchestrator.Work{
-			BatchId:  id.mustMarshalBinary(),
+			BatchId:  id.MustMarshalBinary(),
 			JobId:    i,
 			Duration: rand.Int63n(4000) + 2000,
 		}
@@ -94,7 +86,7 @@ func (t *Tracker) runBatch(id batchID, jobCount int32) ([]*sarama.ProducerMessag
 
 	// Create updated event message
 	newEvent := orchestrator.Event{
-		BatchId:     id.mustMarshalBinary(),
+		BatchId:     id.MustMarshalBinary(),
 		StatusLevel: orchestrator.Event_BATCH,
 		Status:      orchestrator.Event_RUNNING,
 	}
@@ -112,7 +104,7 @@ func (t *Tracker) runBatch(id batchID, jobCount int32) ([]*sarama.ProducerMessag
 	return outMsgs, nil
 }
 
-func (t *Tracker) updateJob(id batchID, event orchestrator.Event) (*sarama.ProducerMessage, error) {
+func (t *Tracker) updateJob(id orchestrator.BatchID, event orchestrator.Event) (*sarama.ProducerMessage, error) {
 	b, ok := t.state[id]
 	if !ok {
 		return nil, fmt.Errorf("previously unseen batch")
@@ -127,7 +119,7 @@ func (t *Tracker) updateJob(id batchID, event orchestrator.Event) (*sarama.Produ
 	// Batch is terminated (SUCCESS or FAILURE)
 
 	outEvent := &orchestrator.Event{
-		BatchId:     id.mustMarshalBinary(),
+		BatchId:     id.MustMarshalBinary(),
 		StatusLevel: orchestrator.Event_BATCH,
 		Status:      newBatchStatus,
 	}

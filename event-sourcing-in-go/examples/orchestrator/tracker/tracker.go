@@ -3,13 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/oklog/ulid"
-
+	"github.com/Shopify/sarama"
 	"github.com/backlin/resources/event-sourcing-in-go/examples/orchestrator"
 	"github.com/go-kit/kit/log"
-	"github.com/gogo/protobuf/proto"
-
-	"github.com/Shopify/sarama"
 )
 
 const ConsumerPartition = 0
@@ -26,7 +22,7 @@ type Tracker struct {
 	partitionOffsetManager sarama.PartitionOffsetManager
 	offset                 int64
 
-	state map[batchID]*batch
+	state map[orchestrator.BatchID]*batch
 }
 
 func (t *Tracker) Run() error {
@@ -57,7 +53,7 @@ func (t *Tracker) Run() error {
 	}
 	defer t.partitionOffsetManager.Close()
 
-	t.state = make(map[batchID]*batch)
+	t.state = make(map[orchestrator.BatchID]*batch)
 
 	startOffset, _ := t.partitionOffsetManager.NextOffset()
 
@@ -78,7 +74,7 @@ func (t *Tracker) Run() error {
 
 		t.offset = inMsg.Offset
 
-		id, event, err := unmarshalMessage(inMsg)
+		id, event, err := orchestrator.UnmarshalEvent(inMsg)
 		if err != nil {
 			t.Logger.Log("offset", inMsg.Offset, "msg", "invalid message", "err", err)
 			continue
@@ -90,7 +86,7 @@ func (t *Tracker) Run() error {
 		}
 
 		// Has this message been processed by a previous tracker instance?
-		if inMsg.Offset >= startOffset {
+		if inMsg.Offset >= startOffset && outMsgs != nil {
 			// No, this message has not been processed before -> Do follow-up actions
 
 			if err := t.producer.SendMessages(outMsgs); err != nil {
@@ -101,19 +97,4 @@ func (t *Tracker) Run() error {
 			t.partitionOffsetManager.MarkOffset(inMsg.Offset, "")
 		}
 	}
-}
-
-func unmarshalMessage(inMsg *sarama.ConsumerMessage) (batchID, orchestrator.Event, error) {
-	id := ulid.ULID{}
-	event := orchestrator.Event{}
-
-	if err := proto.Unmarshal(inMsg.Value, &event); err != nil {
-		return batchID(id), event, fmt.Errorf("could not unmarshal event: %s", err)
-	}
-
-	if err := id.UnmarshalBinary(event.GetBatchId()); err != nil {
-		return batchID(id), event, fmt.Errorf("could not unmarshal batch ID: %s", err)
-	}
-
-	return batchID(id), event, nil
 }

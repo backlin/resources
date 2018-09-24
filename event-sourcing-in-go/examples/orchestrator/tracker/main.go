@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/backlin/resources/event-sourcing-in-go/examples/orchestrator"
+
 	"github.com/Shopify/sarama"
 	"github.com/go-kit/kit/log"
 )
@@ -22,9 +24,7 @@ var config = struct {
 func main() {
 	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	saramaConfig := sarama.NewConfig()
-
-	client, err := sarama.NewClient(config.BrokerAddresses, saramaConfig)
+	client, err := sarama.NewClient(config.BrokerAddresses, orchestrator.DefaultConfig())
 	if err != nil {
 		logger.Log("msg", "could not create client", "err", err)
 		os.Exit(1)
@@ -39,6 +39,7 @@ func main() {
 		WorkerTopic:  config.WorkerTopic,
 	}
 
+	logger.Log("msg", "running tracker")
 	if err := tr.Run(); err != nil {
 		logger.Log("msg", "critical failure, shutting down tracker", "err", err)
 		os.Exit(1)
