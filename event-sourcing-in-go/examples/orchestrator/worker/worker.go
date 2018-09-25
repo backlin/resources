@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/Shopify/sarama"
@@ -62,12 +63,17 @@ func processWork(work orchestrator.Work, trackerTopic string) (*sarama.ProducerM
 	// Do the actual work
 	time.Sleep(time.Duration(work.Duration) * time.Millisecond)
 
+	outStatus := orchestrator.Event_SUCCESS
+	if rand.Float32() < work.FailureRate {
+		outStatus = orchestrator.Event_FAILURE
+	}
+
 	// Package the output
 	value := orchestrator.Event{
 		BatchId:     work.BatchId,
 		JobId:       work.JobId,
 		StatusLevel: orchestrator.Event_JOB,
-		Status:      orchestrator.Event_SUCCESS,
+		Status:      outStatus,
 	}
 
 	b, err := value.Marshal()

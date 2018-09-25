@@ -17,16 +17,20 @@ import (
 var config = struct {
 	BrokerAddresses []string
 	TrackerTopic    string
-	Create          bool  `id:"create",validate:"required"`
-	JobCount        int32 `id:"job-count",validate:"gt=0"`
+	Create          bool    `id:"create" validate:"required"`
+	JobCount        int32   `id:"job-count" validate:"gt=0"`
+	MeanDuration    int64   `id:"mean-duration" validate:"gt=0"`
+	FailureRate     float32 `id:"failure-rate" validate:"ge=0,le=1"`
 }{
 	BrokerAddresses: []string{"localhost:9092"},
 	TrackerTopic:    "tracker",
+	MeanDuration:    2000,
+	FailureRate:     0.0,
 }
 
 func main() {
 	if err := gonfig.Load(&config, gonfig.Conf{}); err != nil {
-		fmt.Printf("error reading arguments: %s", err)
+		fmt.Printf("error reading arguments: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -52,7 +56,11 @@ func main() {
 		BatchId:     bID,
 		StatusLevel: orchestrator.Event_BATCH,
 		Status:      orchestrator.Event_PENDING,
-		JobCount:    config.JobCount,
+		Parameters: &orchestrator.Event_Parameters{
+			JobCount:     config.JobCount,
+			MeanDuration: config.MeanDuration,
+			FailureRate:  config.FailureRate,
+		},
 	}
 
 	bEvent, err := event.Marshal()

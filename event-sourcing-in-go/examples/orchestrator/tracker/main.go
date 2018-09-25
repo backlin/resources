@@ -10,10 +10,10 @@ import (
 )
 
 var config = struct {
-	BrokerAddresses []string `id:"broker-addresses",validate:"required"`
-	TrackerTopic    string   `id:"tracker-topic",validate:"required"`
-	TrackerGroup    string   `id:"tracker-group",validate:"required"`
-	WorkerTopic     string   `id:"worker-topic",validate:"required"`
+	BrokerAddresses []string `id:"broker-addresses" validate:"required"`
+	TrackerTopic    string   `id:"tracker-topic" validate:"required"`
+	TrackerGroup    string   `id:"tracker-group" validate:"required"`
+	WorkerTopic     string   `id:"worker-topic" validate:"required"`
 }{
 	BrokerAddresses: []string{"localhost:9092"},
 	TrackerTopic:    "tracker",

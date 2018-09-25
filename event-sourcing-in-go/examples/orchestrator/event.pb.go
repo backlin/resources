@@ -83,11 +83,11 @@ func (x Event_Status) String() string {
 func (Event_Status) EnumDescriptor() ([]byte, []int) { return fileDescriptorEvent, []int{0, 1} }
 
 type Event struct {
-	BatchId     []byte       `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
-	JobId       int32        `protobuf:"varint,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	StatusLevel Event_Level  `protobuf:"varint,3,opt,name=status_level,json=statusLevel,proto3,enum=orchestrator.Event_Level" json:"status_level,omitempty"`
-	Status      Event_Status `protobuf:"varint,4,opt,name=status,proto3,enum=orchestrator.Event_Status" json:"status,omitempty"`
-	JobCount    int32        `protobuf:"varint,5,opt,name=job_count,json=jobCount,proto3" json:"job_count,omitempty"`
+	BatchId     []byte            `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	JobId       int32             `protobuf:"varint,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	StatusLevel Event_Level       `protobuf:"varint,3,opt,name=status_level,json=statusLevel,proto3,enum=orchestrator.Event_Level" json:"status_level,omitempty"`
+	Status      Event_Status      `protobuf:"varint,4,opt,name=status,proto3,enum=orchestrator.Event_Status" json:"status,omitempty"`
+	Parameters  *Event_Parameters `protobuf:"bytes,5,opt,name=parameters" json:"parameters,omitempty"`
 }
 
 func (m *Event) Reset()                    { *m = Event{} }
@@ -123,17 +123,50 @@ func (m *Event) GetStatus() Event_Status {
 	return Event_MISSING
 }
 
-func (m *Event) GetJobCount() int32 {
+func (m *Event) GetParameters() *Event_Parameters {
+	if m != nil {
+		return m.Parameters
+	}
+	return nil
+}
+
+type Event_Parameters struct {
+	JobCount     int32   `protobuf:"varint,1,opt,name=job_count,json=jobCount,proto3" json:"job_count,omitempty"`
+	MeanDuration int64   `protobuf:"varint,2,opt,name=mean_duration,json=meanDuration,proto3" json:"mean_duration,omitempty"`
+	FailureRate  float32 `protobuf:"fixed32,3,opt,name=failure_rate,json=failureRate,proto3" json:"failure_rate,omitempty"`
+}
+
+func (m *Event_Parameters) Reset()                    { *m = Event_Parameters{} }
+func (m *Event_Parameters) String() string            { return proto.CompactTextString(m) }
+func (*Event_Parameters) ProtoMessage()               {}
+func (*Event_Parameters) Descriptor() ([]byte, []int) { return fileDescriptorEvent, []int{0, 0} }
+
+func (m *Event_Parameters) GetJobCount() int32 {
 	if m != nil {
 		return m.JobCount
 	}
 	return 0
 }
 
+func (m *Event_Parameters) GetMeanDuration() int64 {
+	if m != nil {
+		return m.MeanDuration
+	}
+	return 0
+}
+
+func (m *Event_Parameters) GetFailureRate() float32 {
+	if m != nil {
+		return m.FailureRate
+	}
+	return 0
+}
+
 type Work struct {
-	BatchId  []byte `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
-	JobId    int32  `protobuf:"varint,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
-	Duration int64  `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`
+	BatchId     []byte  `protobuf:"bytes,1,opt,name=batch_id,json=batchId,proto3" json:"batch_id,omitempty"`
+	JobId       int32   `protobuf:"varint,2,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+	Duration    int64   `protobuf:"varint,3,opt,name=duration,proto3" json:"duration,omitempty"`
+	FailureRate float32 `protobuf:"fixed32,4,opt,name=failure_rate,json=failureRate,proto3" json:"failure_rate,omitempty"`
 }
 
 func (m *Work) Reset()                    { *m = Work{} }
@@ -162,8 +195,16 @@ func (m *Work) GetDuration() int64 {
 	return 0
 }
 
+func (m *Work) GetFailureRate() float32 {
+	if m != nil {
+		return m.FailureRate
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*Event)(nil), "orchestrator.Event")
+	proto.RegisterType((*Event_Parameters)(nil), "orchestrator.Event.Parameters")
 	proto.RegisterType((*Work)(nil), "orchestrator.Work")
 	proto.RegisterEnum("orchestrator.Event_Level", Event_Level_name, Event_Level_value)
 	proto.RegisterEnum("orchestrator.Event_Status", Event_Status_name, Event_Status_value)
@@ -204,10 +245,48 @@ func (m *Event) MarshalTo(dAtA []byte) (int, error) {
 		i++
 		i = encodeVarintEvent(dAtA, i, uint64(m.Status))
 	}
+	if m.Parameters != nil {
+		dAtA[i] = 0x2a
+		i++
+		i = encodeVarintEvent(dAtA, i, uint64(m.Parameters.Size()))
+		n1, err := m.Parameters.MarshalTo(dAtA[i:])
+		if err != nil {
+			return 0, err
+		}
+		i += n1
+	}
+	return i, nil
+}
+
+func (m *Event_Parameters) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalTo(dAtA)
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *Event_Parameters) MarshalTo(dAtA []byte) (int, error) {
+	var i int
+	_ = i
+	var l int
+	_ = l
 	if m.JobCount != 0 {
-		dAtA[i] = 0x28
+		dAtA[i] = 0x8
 		i++
 		i = encodeVarintEvent(dAtA, i, uint64(m.JobCount))
+	}
+	if m.MeanDuration != 0 {
+		dAtA[i] = 0x10
+		i++
+		i = encodeVarintEvent(dAtA, i, uint64(m.MeanDuration))
+	}
+	if m.FailureRate != 0 {
+		dAtA[i] = 0x1d
+		i++
+		i = encodeFixed32Event(dAtA, i, uint32(math.Float32bits(float32(m.FailureRate))))
 	}
 	return i, nil
 }
@@ -242,6 +321,11 @@ func (m *Work) MarshalTo(dAtA []byte) (int, error) {
 		dAtA[i] = 0x18
 		i++
 		i = encodeVarintEvent(dAtA, i, uint64(m.Duration))
+	}
+	if m.FailureRate != 0 {
+		dAtA[i] = 0x25
+		i++
+		i = encodeFixed32Event(dAtA, i, uint32(math.Float32bits(float32(m.FailureRate))))
 	}
 	return i, nil
 }
@@ -289,8 +373,24 @@ func (m *Event) Size() (n int) {
 	if m.Status != 0 {
 		n += 1 + sovEvent(uint64(m.Status))
 	}
+	if m.Parameters != nil {
+		l = m.Parameters.Size()
+		n += 1 + l + sovEvent(uint64(l))
+	}
+	return n
+}
+
+func (m *Event_Parameters) Size() (n int) {
+	var l int
+	_ = l
 	if m.JobCount != 0 {
 		n += 1 + sovEvent(uint64(m.JobCount))
+	}
+	if m.MeanDuration != 0 {
+		n += 1 + sovEvent(uint64(m.MeanDuration))
+	}
+	if m.FailureRate != 0 {
+		n += 5
 	}
 	return n
 }
@@ -307,6 +407,9 @@ func (m *Work) Size() (n int) {
 	}
 	if m.Duration != 0 {
 		n += 1 + sovEvent(uint64(m.Duration))
+	}
+	if m.FailureRate != 0 {
+		n += 5
 	}
 	return n
 }
@@ -442,6 +545,89 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 				}
 			}
 		case 5:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Parameters", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= (int(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthEvent
+			}
+			postIndex := iNdEx + msglen
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Parameters == nil {
+				m.Parameters = &Event_Parameters{}
+			}
+			if err := m.Parameters.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipEvent(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if skippy < 0 {
+				return ErrInvalidLengthEvent
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *Event_Parameters) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowEvent
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= (uint64(b) & 0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: Parameters: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: Parameters: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field JobCount", wireType)
 			}
@@ -460,6 +646,39 @@ func (m *Event) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field MeanDuration", wireType)
+			}
+			m.MeanDuration = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowEvent
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.MeanDuration |= (int64(b) & 0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 3:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailureRate", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += 4
+			v = uint32(dAtA[iNdEx-4])
+			v |= uint32(dAtA[iNdEx-3]) << 8
+			v |= uint32(dAtA[iNdEx-2]) << 16
+			v |= uint32(dAtA[iNdEx-1]) << 24
+			m.FailureRate = float32(math.Float32frombits(v))
 		default:
 			iNdEx = preIndex
 			skippy, err := skipEvent(dAtA[iNdEx:])
@@ -579,6 +798,20 @@ func (m *Work) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		case 4:
+			if wireType != 5 {
+				return fmt.Errorf("proto: wrong wireType = %d for field FailureRate", wireType)
+			}
+			var v uint32
+			if (iNdEx + 4) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += 4
+			v = uint32(dAtA[iNdEx-4])
+			v |= uint32(dAtA[iNdEx-3]) << 8
+			v |= uint32(dAtA[iNdEx-2]) << 16
+			v |= uint32(dAtA[iNdEx-1]) << 24
+			m.FailureRate = float32(math.Float32frombits(v))
 		default:
 			iNdEx = preIndex
 			skippy, err := skipEvent(dAtA[iNdEx:])
@@ -708,25 +941,30 @@ var (
 func init() { proto.RegisterFile("event.proto", fileDescriptorEvent) }
 
 var fileDescriptorEvent = []byte{
-	// 315 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0xd1, 0xc1, 0x4e, 0xf2, 0x40,
-	0x10, 0x07, 0x70, 0x96, 0xb2, 0x05, 0x06, 0xf2, 0x65, 0xb3, 0xc9, 0x97, 0x14, 0x48, 0x1a, 0xd2,
-	0x13, 0xa7, 0x1e, 0xf0, 0xea, 0x05, 0x6a, 0xd5, 0x35, 0x58, 0xcd, 0x2e, 0xc4, 0x23, 0x69, 0x69,
-	0x13, 0x40, 0xc2, 0x9a, 0x65, 0xe1, 0x39, 0x7c, 0x14, 0x1f, 0xc3, 0xa3, 0x8f, 0x60, 0xea, 0x8b,
-	0x98, 0xdd, 0x1a, 0xe3, 0xc1, 0x93, 0xc7, 0x5f, 0xe6, 0x3f, 0xb3, 0x93, 0x59, 0xe8, 0x14, 0xa7,
-	0x62, 0xaf, 0xc3, 0x27, 0x25, 0xb5, 0xa4, 0x5d, 0xa9, 0x56, 0xeb, 0xe2, 0xa0, 0x55, 0xaa, 0xa5,
-	0x0a, 0x5e, 0xea, 0x80, 0x63, 0x53, 0xa5, 0x3d, 0x68, 0x65, 0xa9, 0x5e, 0xad, 0x97, 0x9b, 0xdc,
-	0x43, 0x43, 0x34, 0xea, 0xf2, 0xa6, 0x35, 0xcb, 0xe9, 0x7f, 0x70, 0xb7, 0x32, 0x33, 0x85, 0xfa,
-	0x10, 0x8d, 0x30, 0xc7, 0x5b, 0x99, 0xb1, 0x9c, 0x9e, 0x43, 0xf7, 0xa0, 0x53, 0x7d, 0x3c, 0x2c,
-	0x77, 0xc5, 0xa9, 0xd8, 0x79, 0xce, 0x10, 0x8d, 0xfe, 0x8d, 0x7b, 0xe1, 0xcf, 0x07, 0x42, 0x3b,
-	0x3c, 0x9c, 0x99, 0x00, 0xef, 0x54, 0x71, 0x0b, 0x3a, 0x06, 0xb7, 0xa2, 0xd7, 0xb0, 0x7d, 0xfd,
-	0xdf, 0xfa, 0x84, 0x4d, 0xf0, 0xaf, 0x24, 0x1d, 0x40, 0xdb, 0x2c, 0xb2, 0x92, 0xc7, 0xbd, 0xf6,
-	0xb0, 0xdd, 0xa5, 0xb5, 0x95, 0x59, 0x64, 0x1c, 0x0c, 0x00, 0x57, 0x93, 0xdb, 0x80, 0xa7, 0x93,
-	0x79, 0x74, 0x4d, 0x6a, 0xb4, 0x09, 0xce, 0xcd, 0xdd, 0x94, 0xa0, 0x80, 0x81, 0x5b, 0xcd, 0xa2,
-	0x1d, 0x68, 0xde, 0x32, 0x21, 0x58, 0x72, 0x45, 0x6a, 0x06, 0xf7, 0x71, 0x72, 0x61, 0x80, 0x0c,
-	0xf8, 0x22, 0x49, 0x0c, 0xea, 0x06, 0x62, 0x11, 0x45, 0xb1, 0x10, 0xc4, 0x31, 0xb8, 0x9c, 0xb0,
-	0xd9, 0x82, 0xc7, 0xa4, 0x11, 0xcc, 0xa1, 0xf1, 0x20, 0xd5, 0xe3, 0x1f, 0x0e, 0xd6, 0x87, 0x56,
-	0x7e, 0x54, 0xa9, 0xde, 0xc8, 0xbd, 0x3d, 0x96, 0xc3, 0xbf, 0x3d, 0x25, 0xaf, 0xa5, 0x8f, 0xde,
-	0x4a, 0x1f, 0xbd, 0x97, 0x3e, 0x7a, 0xfe, 0xf0, 0x6b, 0x99, 0x6b, 0xff, 0xeb, 0xec, 0x33, 0x00,
-	0x00, 0xff, 0xff, 0x40, 0x8c, 0xdb, 0x02, 0xbe, 0x01, 0x00, 0x00,
+	// 391 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x92, 0x4f, 0x6f, 0xd3, 0x30,
+	0x18, 0xc6, 0xeb, 0xe6, 0x4f, 0xbb, 0x37, 0x01, 0x45, 0x96, 0x90, 0xb2, 0x4e, 0x8a, 0x42, 0xb8,
+	0xe4, 0x94, 0x43, 0xb9, 0x22, 0xa4, 0x35, 0x0b, 0x10, 0x34, 0xc2, 0xe4, 0x50, 0x71, 0x8c, 0x9c,
+	0xc6, 0x68, 0x2d, 0x5d, 0x3c, 0x1c, 0x67, 0x7c, 0x0d, 0x3e, 0x15, 0xe2, 0xc8, 0x47, 0x40, 0xe5,
+	0x8b, 0x20, 0x3b, 0x55, 0x99, 0xb4, 0x9e, 0x76, 0xfc, 0xbd, 0xef, 0xf3, 0x24, 0xfa, 0xd9, 0x06,
+	0x87, 0xdd, 0xb1, 0x56, 0x26, 0xb7, 0x82, 0x4b, 0x8e, 0x5d, 0x2e, 0x56, 0xd7, 0xac, 0x93, 0x82,
+	0x4a, 0x2e, 0xa2, 0x9f, 0x06, 0x58, 0x99, 0xda, 0xe2, 0x53, 0x98, 0xd6, 0x54, 0xae, 0xae, 0xab,
+	0x75, 0xe3, 0xa3, 0x10, 0xc5, 0x2e, 0x99, 0x68, 0xce, 0x1b, 0xfc, 0x0c, 0xec, 0x0d, 0xaf, 0xd5,
+	0x62, 0x1c, 0xa2, 0xd8, 0x22, 0xd6, 0x86, 0xd7, 0x79, 0x83, 0x5f, 0x81, 0xdb, 0x49, 0x2a, 0xfb,
+	0xae, 0xda, 0xb2, 0x3b, 0xb6, 0xf5, 0x8d, 0x10, 0xc5, 0x4f, 0xe7, 0xa7, 0xc9, 0xfd, 0x1f, 0x24,
+	0xfa, 0xe3, 0xc9, 0xa5, 0x0a, 0x10, 0x67, 0x88, 0x6b, 0xc0, 0x73, 0xb0, 0x07, 0xf4, 0x4d, 0xdd,
+	0x9b, 0x1d, 0xeb, 0x95, 0x3a, 0x41, 0xf6, 0x49, 0xfc, 0x1a, 0xe0, 0x96, 0x0a, 0x7a, 0xc3, 0x24,
+	0x13, 0x9d, 0x6f, 0x85, 0x28, 0x76, 0xe6, 0xc1, 0xb1, 0xde, 0xd5, 0x21, 0x45, 0xee, 0x35, 0x66,
+	0xdf, 0x00, 0xfe, 0x6f, 0xf0, 0x19, 0x9c, 0x28, 0xad, 0x15, 0xef, 0x5b, 0xa9, 0x95, 0x2d, 0x32,
+	0xdd, 0xf0, 0x3a, 0x55, 0x8c, 0x5f, 0xc0, 0x93, 0x1b, 0x46, 0xdb, 0xaa, 0xe9, 0x05, 0x95, 0x6b,
+	0xde, 0x6a, 0x75, 0x83, 0xb8, 0x6a, 0x78, 0xb1, 0x9f, 0xe1, 0xe7, 0xe0, 0x7e, 0xa1, 0xeb, 0x6d,
+	0x2f, 0x58, 0x25, 0xa8, 0x64, 0xfa, 0x04, 0xc6, 0xc4, 0xd9, 0xcf, 0x08, 0x95, 0x2c, 0x3a, 0x03,
+	0x6b, 0xf0, 0x3d, 0x01, 0x6b, 0x71, 0xfe, 0x29, 0x7d, 0xe7, 0x8d, 0xf0, 0x04, 0x8c, 0xf7, 0x1f,
+	0x17, 0x1e, 0x8a, 0x72, 0xb0, 0x07, 0x43, 0xec, 0xc0, 0xe4, 0x43, 0x5e, 0x96, 0x79, 0xf1, 0xd6,
+	0x1b, 0x29, 0xb8, 0xca, 0x8a, 0x0b, 0x05, 0x48, 0x01, 0x59, 0x16, 0x85, 0x82, 0xb1, 0x82, 0x72,
+	0x99, 0xa6, 0x59, 0x59, 0x7a, 0x86, 0x82, 0x37, 0xe7, 0xf9, 0xe5, 0x92, 0x64, 0x9e, 0x19, 0x7d,
+	0x07, 0xf3, 0x33, 0x17, 0x5f, 0x1f, 0x71, 0x8d, 0x33, 0x98, 0x1e, 0x24, 0x0d, 0x2d, 0x79, 0xe0,
+	0x07, 0x82, 0xe6, 0x03, 0xc1, 0x85, 0xf7, 0x6b, 0x17, 0xa0, 0xdf, 0xbb, 0x00, 0xfd, 0xd9, 0x05,
+	0xe8, 0xc7, 0xdf, 0x60, 0x54, 0xdb, 0xfa, 0xa1, 0xbd, 0xfc, 0x17, 0x00, 0x00, 0xff, 0xff, 0x90,
+	0x31, 0x2d, 0xb4, 0x77, 0x02, 0x00, 0x00,
 }

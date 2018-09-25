@@ -65,6 +65,7 @@ func (t *Tracker) Run() error {
 
 	// Main loop
 
+	stateRecovered := false
 	for {
 		inMsg, open := <-partitionConsumer.Messages()
 
@@ -86,15 +87,22 @@ func (t *Tracker) Run() error {
 		}
 
 		// Has this message been processed by a previous tracker instance?
-		if inMsg.Offset >= startOffset && outMsgs != nil {
+		if inMsg.Offset >= startOffset {
 			// No, this message has not been processed before -> Do follow-up actions
 
-			if err := t.producer.SendMessages(outMsgs); err != nil {
-				return fmt.Errorf("could not send event message: %s", err)
+			if !stateRecovered {
+				stateRecovered = true
+				t.Logger.Log("offset", inMsg.Offset, "msg", "state recovered")
 			}
 
-			// Mark after send to ensure least-once guarantee
+			if len(outMsgs) > 0 {
+				if err := t.producer.SendMessages(outMsgs); err != nil {
+					return fmt.Errorf("could not send event message: %s", err)
+				}
+			}
+
 			t.partitionOffsetManager.MarkOffset(inMsg.Offset, "")
+			// Mark after send, not before, to ensure least-once guarantee
 		}
 	}
 }

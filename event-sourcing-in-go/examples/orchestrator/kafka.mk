@@ -1,6 +1,8 @@
 topic-cmd := kafka-topics --zookeeper localhost:2181
 groups-cmd := kafka-consumer-groups --bootstrap-server localhost:9092
 
+.PHONY: create-topics delete-topics describe-topics reset-offsets describe-groups
+
 
 
 create-topics:

@@ -18,7 +18,8 @@ func (t *Tracker) updateState(id orchestrator.BatchID, event orchestrator.Event)
 	if event.GetStatusLevel() == orchestrator.Event_JOB {
 		outMsg, err := t.updateJob(id, event)
 		if err != nil {
-			return nil, fmt.Errorf("failed updating job: %s", err)
+			t.Logger.Log("offset", t.offset, "batch_id", id, "msg", "failed updating job", "err", err)
+			return nil, nil
 		}
 
 		if outMsg == nil {
@@ -42,7 +43,7 @@ func (t *Tracker) updateBatch(id orchestrator.BatchID, event orchestrator.Event)
 
 	switch event.GetStatus() {
 	case orchestrator.Event_PENDING:
-		return t.runBatch(id, event.GetJobCount())
+		return t.runBatch(id, event.GetParameters())
 
 	case orchestrator.Event_SUCCESS:
 		// Run downstream dependencies
@@ -54,24 +55,27 @@ func (t *Tracker) updateBatch(id orchestrator.BatchID, event orchestrator.Event)
 	return nil, nil
 }
 
-func (t *Tracker) runBatch(id orchestrator.BatchID, jobCount int32) ([]*sarama.ProducerMessage, error) {
-	if jobCount == 0 {
+func (t *Tracker) runBatch(id orchestrator.BatchID, parameters *orchestrator.Event_Parameters) ([]*sarama.ProducerMessage, error) {
+	if parameters.GetJobCount() == 0 {
 		t.Logger.Log("offset", t.offset, "batch_id", id, "err", "batch has no jobs, no point running it")
 		return nil, nil
 	}
 
 	t.state[id] = &batch{
-		jobCount: jobCount,
+		jobCount: parameters.JobCount,
 	}
 
-	outMsgs := make([]*sarama.ProducerMessage, jobCount+1)
+	outMsgs := make([]*sarama.ProducerMessage, parameters.JobCount+1)
 
 	// Create work messages
-	for i := int32(0); i < jobCount; i++ {
+	meanDuration := parameters.GetMeanDuration()
+
+	for i := int32(0); i < parameters.JobCount; i++ {
 		work := &orchestrator.Work{
-			BatchId:  id.MustMarshalBinary(),
-			JobId:    i,
-			Duration: rand.Int63n(4000) + 2000,
+			BatchId:     id.MustMarshalBinary(),
+			JobId:       i,
+			Duration:    meanDuration/2 + rand.Int63n(meanDuration),
+			FailureRate: parameters.GetFailureRate(),
 		}
 
 		b, err := work.Marshal()
@@ -96,7 +100,7 @@ func (t *Tracker) runBatch(id orchestrator.BatchID, jobCount int32) ([]*sarama.P
 		return nil, fmt.Errorf("could not marshal event message: %s", err)
 	}
 
-	outMsgs[jobCount] = &sarama.ProducerMessage{
+	outMsgs[parameters.JobCount] = &sarama.ProducerMessage{
 		Topic: t.TrackerTopic,
 		Value: sarama.ByteEncoder(b),
 	}
@@ -105,6 +109,8 @@ func (t *Tracker) runBatch(id orchestrator.BatchID, jobCount int32) ([]*sarama.P
 }
 
 func (t *Tracker) updateJob(id orchestrator.BatchID, event orchestrator.Event) (*sarama.ProducerMessage, error) {
+	t.Logger.Log("offset", t.offset, "batch_id", id, "job_id", event.JobId, "status", event.GetStatus())
+
 	b, ok := t.state[id]
 	if !ok {
 		return nil, fmt.Errorf("previously unseen batch")
