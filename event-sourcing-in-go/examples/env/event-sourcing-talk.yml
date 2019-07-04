@@ -1,0 +1,15 @@
+name: event-sourcing-talk
+root: ~/go/src/github.com/backlin/resources/event-sourcing-in-go/examples
+
+windows:
+  - code:
+      panes:
+        - vim
+  - demo:
+      layout: tiled
+      panes:
+        - source env/cli.fish
+        - source env/tracker.fish
+        - source env/worker.fish
+        - source env/worker.fish
+
